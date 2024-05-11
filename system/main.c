@@ -46,7 +46,7 @@ int main()
     hw_cfg_pin(GPIOx(GPIO_A),8,GPIOCFG_MODE_OUT | GPIOCFG_OSPEED_VHIGH  | GPIOCFG_OTYPE_PUPD | GPIOCFG_PUPD_PUP);
 
     
-    
+ 
     check_msc();
     
 
@@ -155,33 +155,5 @@ int main()
     __set_MSP((*(__IO uint32_t*)FLASH_BASE2));
 
     ((void (*) (void)) (jump_addr)) ();
-    while(1);
- 
-    while(1){
-         
-
-       // if(usart_available()){
-         //   kprintf("%c",usart_getc());
-        //}
-
-
-
-
-
-       /*if (!hw_get_pin(GPIOx(GPIO_A),0)){
-           hw_set_pin(GPIOx(GPIO_C),13, 1);
-           hw_set_pin(GPIOx(GPIO_C),9, 1);
-           hw_set_pin(GPIOx(GPIO_A),8, 1);
-       }*/
-      
-       hw_toggle_pin(GPIOx(GPIO_C),13);
-       delay(1000);
-       //hw_set_pin(GPIOx(GPIO_C),13, 0);
-       //hw_set_pin(GPIOx(GPIO_C),9, 1);
-       //hw_set_pin(GPIOx(GPIO_C),13, 1);
-       //delay(1000);
-       //kprintf("blink\n");
-    }
-
     return 0;
 }
