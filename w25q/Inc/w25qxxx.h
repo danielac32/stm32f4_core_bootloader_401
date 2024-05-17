@@ -8,7 +8,7 @@
 #define W25Q32 	0XEF15
 #define W25Q64 	0XEF16
 #define W25Q128  0XEF17
-#define SPI_FLASH_SECTOR_COUNT   31250 
+#define SPI_FLASH_SECTOR_COUNT   (31250-3906)//16m/512=31250// aqui se le restaran 2m que es igual a 2m/512=3906
 #define FLASH_SECTOR_SIZE  512 
 //#define	SPI_FLASH_CS PCout(4)  //选中FLASH	
 				 
