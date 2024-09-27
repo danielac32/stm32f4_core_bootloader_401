@@ -278,7 +278,7 @@ static void bot_tx(usbd_device *dev)
             sd_error err;
             do
             {
-                err = w25qxxx_drv.read((uint8_t *)bot.buff, bot.lba, 1);
+                err = sd_card_drv.read((uint8_t *)bot.buff, bot.lba, 1);
             }
             while (err == sd_err_wrong_status);
             bot.lba++;
@@ -436,15 +436,15 @@ static void bot_rx(usbd_device *dev)
             {
                 cdb_read_capacity_10_t *cdb;
                 db_read_capacity_10_t db = { 0 };
-                flash_info_t *flash_info;//sd_info_t *sd_info;
+                sd_info_t *sd_info;
 
                 cdb = (cdb_read_capacity_10_t *)bot.cbw.CB;
-                flash_info = w25qxxx_drv.getcardinfo();
+                sd_info = sd_card_drv.getcardinfo();
                 bot.lba = cdb->logical_block_address[0] << 24 |
                           cdb->logical_block_address[1] << 16 |
                           cdb->logical_block_address[2] << 8 |
                           cdb->logical_block_address[3];
-                if (bot.lba > flash_info->card_size - 1)
+                if (bot.lba > sd_info->card_size - 1)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, LOGICAL_BLOCK_ADDRESS_OUT_OF_RANGE);
                     break;
@@ -455,14 +455,14 @@ static void bot_rx(usbd_device *dev)
                     break;
                 }
 
-                db.logical_block_address[0] = (flash_info->card_size - 1) >> 24;
-                db.logical_block_address[1] = (flash_info->card_size - 1) >> 16;
-                db.logical_block_address[2] = (flash_info->card_size - 1) >> 8;
-                db.logical_block_address[3] = (flash_info->card_size - 1);
-                db.logical_block_length[0] = flash_info->sect_size >> 24;
-                db.logical_block_length[1] = flash_info->sect_size >> 16;
-                db.logical_block_length[2] = flash_info->sect_size >> 8;
-                db.logical_block_length[3] = flash_info->sect_size;
+                db.logical_block_address[0] = (sd_info->card_size - 1) >> 24;
+                db.logical_block_address[1] = (sd_info->card_size - 1) >> 16;
+                db.logical_block_address[2] = (sd_info->card_size - 1) >> 8;
+                db.logical_block_address[3] = (sd_info->card_size - 1);
+                db.logical_block_length[0] = sd_info->sect_size >> 24;
+                db.logical_block_length[1] = sd_info->sect_size >> 16;
+                db.logical_block_length[2] = sd_info->sect_size >> 8;
+                db.logical_block_length[3] = sd_info->sect_size;
 
                 bot.fpos = sizeof(db);
                 memcpy(bot.buff, &db, bot.fpos);
@@ -476,17 +476,17 @@ static void bot_rx(usbd_device *dev)
         case SCSI_READ_10:
             {
                 cdb_read_10_t *cdb;
-                flash_info_t *flash_info;//sd_info_t *sd_info;
+                sd_info_t *sd_info;
 
                 cdb = (cdb_read_10_t *)bot.cbw.CB;
-                flash_info = w25qxxx_drv.getcardinfo();
+                sd_info = sd_card_drv.getcardinfo();
                 bot.lba = cdb->logical_block_address[0] << 24 |
                           cdb->logical_block_address[1] << 16 |
                           cdb->logical_block_address[2] << 8 |
                           cdb->logical_block_address[3];
                 bot.lbn = cdb->transfer_length[0] << 8 |
                           cdb->transfer_length[1];
-                if (bot.lba > flash_info->card_size - 1)
+                if (bot.lba > sd_info->card_size - 1)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, LOGICAL_BLOCK_ADDRESS_OUT_OF_RANGE);
                     break;
@@ -496,7 +496,7 @@ static void bot_rx(usbd_device *dev)
                     bot_error(dev, ILLEGAL_REQUEST, INVALID_FIELD_IN_CDB);
                     break;
                 }
-                if (bot.cbw.dDataTransferLength != bot.lbn * flash_info->sect_size)
+                if (bot.cbw.dDataTransferLength != bot.lbn * sd_info->sect_size)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, INVALID_COMMAND_OPERATION_CODE);
                     break;
@@ -510,17 +510,18 @@ static void bot_rx(usbd_device *dev)
         case SCSI_WRITE_10:
             {
                 cdb_write_10_t *cdb;
-                flash_info_t *flash_info;//sd_info_t *sd_info;
+                //flash_info_t *flash_info;//
+                sd_info_t *sd_info;
 
                 cdb = (cdb_write_10_t *)bot.cbw.CB;
-                flash_info = w25qxxx_drv.getcardinfo();
+                sd_info = sd_card_drv.getcardinfo();
                 bot.lba = cdb->logical_block_address[0] << 24 |
                           cdb->logical_block_address[1] << 16 |
                           cdb->logical_block_address[2] << 8 |
                           cdb->logical_block_address[3];
                 bot.lbn = cdb->transfer_length[0] << 8 |
                           cdb->transfer_length[1];
-                if (bot.lba > flash_info->card_size - 1)
+                if (bot.lba > sd_info->card_size - 1)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, LOGICAL_BLOCK_ADDRESS_OUT_OF_RANGE);
                     break;
@@ -530,7 +531,7 @@ static void bot_rx(usbd_device *dev)
                     bot_error(dev, ILLEGAL_REQUEST, INVALID_FIELD_IN_CDB);
                     break;
                 }
-                if (bot.cbw.dDataTransferLength != bot.lbn * flash_info->sect_size)
+                if (bot.cbw.dDataTransferLength != bot.lbn * sd_info->sect_size)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, INVALID_COMMAND_OPERATION_CODE);
                     break;
@@ -544,15 +545,16 @@ static void bot_rx(usbd_device *dev)
         case SCSI_VERIFY_10:
             {
                 cdb_verify_10_t *cdb;
-                flash_info_t *flash_info;//sd_info_t *sd_info;
+                //flash_info_t *flash_info;//
+                sd_info_t *sd_info;
 
                 cdb = (cdb_verify_10_t *)bot.cbw.CB;
-                flash_info = w25qxxx_drv.getcardinfo();
+                sd_info = sd_card_drv.getcardinfo();
                 bot.lba = cdb->logical_block_address[0] << 24 |
                           cdb->logical_block_address[1] << 16 |
                           cdb->logical_block_address[2] << 8 |
                           cdb->logical_block_address[3];
-                if (bot.lba > flash_info->card_size - 1)
+                if (bot.lba > sd_info->card_size - 1)
                 {
                     bot_error(dev, ILLEGAL_REQUEST, LOGICAL_BLOCK_ADDRESS_OUT_OF_RANGE);
                     break;
@@ -574,21 +576,22 @@ static void bot_rx(usbd_device *dev)
             {
                 cdb_read_format_capacities_t *cdb;
                 db_read_format_capacities_t db = { 0 };
-                flash_info_t *flash_info;//sd_info_t *sd_info;
+                //flash_info_t *flash_info;//
+                sd_info_t *sd_info;
 
                 cdb = (cdb_read_format_capacities_t *)bot.cbw.CB;
                 alloc_len = (uint32_t)(cdb->allocation_length[0] << 8 | cdb->allocation_length[1]);
-                flash_info = w25qxxx_drv.getcardinfo();
+                sd_info = sd_card_drv.getcardinfo();
 
                 db.capacity_list_length = 8;
-                db.number_of_blocks[0] = flash_info->card_size >> 24;
-                db.number_of_blocks[1] = flash_info->card_size >> 16;
-                db.number_of_blocks[2] = flash_info->card_size >> 8;
-                db.number_of_blocks[3] = flash_info->card_size;
+                db.number_of_blocks[0] = sd_info->card_size >> 24;
+                db.number_of_blocks[1] = sd_info->card_size >> 16;
+                db.number_of_blocks[2] = sd_info->card_size >> 8;
+                db.number_of_blocks[3] = sd_info->card_size;
                 db.descriptor_type = 0x02;
-                db.block_length[0] = flash_info->sect_size >> 16;
-                db.block_length[1] = flash_info->sect_size >> 8;
-                db.block_length[2] = flash_info->sect_size;
+                db.block_length[0] = sd_info->sect_size >> 16;
+                db.block_length[1] = sd_info->sect_size >> 8;
+                db.block_length[2] = sd_info->sect_size;
 
                 bot.fpos = (alloc_len < sizeof(db)) ? alloc_len : sizeof(db);
                 memcpy(bot.buff, &db, bot.fpos);
@@ -633,7 +636,7 @@ static void bot_rx(usbd_device *dev)
             sd_error err;
             do
             {
-                err = w25qxxx_drv.write((uint8_t *)bot.buff, bot.lba, 1);
+                err = sd_card_drv.write((uint8_t *)bot.buff, bot.lba, 1);
             }
             while (err == sd_err_wrong_status);
             bot.fpos = 0;
@@ -696,7 +699,7 @@ static usbd_respond msc_setconf(usbd_device *dev, uint8_t cfg)
 void check_msc(){
     if (!hw_get_pin(GPIOx(GPIO_A),0)){
 
-        #if 0
+        #if 1
         sd_card_drv.init();
         sd_card_drv.reset();
         sd_info_t *sd_info;

@@ -30,7 +30,7 @@ void toggle(int m){
   for (int i = 0; i < m*2; ++i)
   {
     hw_toggle_pin(GPIOx(GPIO_C),13);
-    delay(300);
+    delay(200);
   }
   hw_set_pin(GPIOx(GPIO_C),13, 1);
 }
